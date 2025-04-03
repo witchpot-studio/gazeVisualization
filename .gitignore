@@ -24,7 +24,6 @@ Thumbs.db
 
 # アプリケーション固有
 cache/
-*.csv
 *.png
 *.mp4
 uploads/

@@ -254,13 +254,13 @@
                 <div class="plot">
                     <div class="plot-wrapper">
                         {{ plot3 | safe }}
-                        <a href="{{ url_for('download_animation', plot_type='combined', session_id=session_id) }}" class="download-button animation-download">アニメーションをダウンロード</a>
+                        <a href="/download_animation/combined?session_id={{ session_id }}" class="download-button">比較動画をダウンロード</a>
                     </div>
                 </div>
                 <div class="plot">
                     <div class="plot-wrapper">
                         {{ plot3_right | safe }}
-                        <a href="{{ url_for('download_animation', plot_type='combined_right', session_id=session_id) }}" class="download-button animation-download">アニメーションをダウンロード</a>
+                        <a href="/download_animation/combined_right?session_id={{ session_id }}" class="download-button">比較動画をダウンロード</a>
                     </div>
                 </div>
             </div>
@@ -270,13 +270,13 @@
                 <div class="plot">
                     <div class="plot-wrapper">
                         {{ plot1 | safe }}
-                        <a href="{{ url_for('download_animation', plot_type='plot1', session_id=session_id) }}" class="download-button animation-download">アニメーションをダウンロード</a>
+                        <a href="/download_animation/plot1?session_id={{ session_id }}" class="download-button">データ1の動画をダウンロード</a>
                     </div>
                 </div>
                 <div class="plot">
                     <div class="plot-wrapper">
                         {{ plot1_right | safe }}
-                        <a href="{{ url_for('download_animation', plot_type='plot1_right', session_id=session_id) }}" class="download-button animation-download">アニメーションをダウンロード</a>
+                        <a href="/download_animation/plot1_right?session_id={{ session_id }}" class="download-button">データ1の動画をダウンロード</a>
                     </div>
                 </div>
             </div>
@@ -286,13 +286,13 @@
                 <div class="plot">
                     <div class="plot-wrapper">
                         {{ plot2 | safe }}
-                        <a href="{{ url_for('download_animation', plot_type='plot2', session_id=session_id) }}" class="download-button animation-download">アニメーションをダウンロード</a>
+                        <a href="/download_animation/plot2?session_id={{ session_id }}" class="download-button">データ2の動画をダウンロード</a>
                     </div>
                 </div>
                 <div class="plot">
                     <div class="plot-wrapper">
                         {{ plot2_right | safe }}
-                        <a href="{{ url_for('download_animation', plot_type='plot2_right', session_id=session_id) }}" class="download-button animation-download">アニメーションをダウンロード</a>
+                        <a href="/download_animation/plot2_right?session_id={{ session_id }}" class="download-button">データ2の動画をダウンロード</a>
                     </div>
                 </div>
             </div>

@@ -13,37 +13,81 @@ import uuid
 from functools import wraps
 from scipy.ndimage import gaussian_filter
 from datetime import timedelta
+import zlib
+import base64
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = tempfile.gettempdir()
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max-limit
 app.secret_key = 'your-secret-key-here'
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)  # セッションの有効期限を1時間に設定
+app.config['SESSION_TYPE'] = 'filesystem'  # セッションをファイルシステムに保存
+app.config['SESSION_FILE_DIR'] = os.path.join(tempfile.gettempdir(), 'flask_session')
+app.config['SESSION_FILE_THRESHOLD'] = 100
 
-# 一時データ保存用のディレクトリを作成
-TEMP_DATA_DIR = os.path.join(tempfile.gettempdir(), 'gaze_data')
-if not os.path.exists(TEMP_DATA_DIR):
-    os.makedirs(TEMP_DATA_DIR)
+# セッションデータ保存用のディレクトリを作成
+SESSION_DATA_DIR = os.path.join(tempfile.gettempdir(), 'gaze_session_data')
+if not os.path.exists(SESSION_DATA_DIR):
+    os.makedirs(SESSION_DATA_DIR)
 
 def save_temp_data(data_dict):
-    """セッションにデータを保存"""
-    session['gaze_data'] = data_dict
-    # セッションIDを生成して保存
-    session_id = str(uuid.uuid4())
-    session['session_id'] = session_id
-    return session_id
+    """セッションデータをファイルシステムに保存"""
+    try:
+        session_id = str(uuid.uuid4())
+        
+        # データをJSON文字列に変換
+        json_str = json.dumps(data_dict)
+        
+        # データを圧縮
+        compressed_data = zlib.compress(json_str.encode('utf-8'))
+        
+        # ファイルに保存
+        file_path = os.path.join(SESSION_DATA_DIR, f'{session_id}.dat')
+        with open(file_path, 'wb') as f:
+            f.write(compressed_data)
+        
+        # セッションにはsession_idのみを保存
+        session.clear()  # 既存のセッションデータをクリア
+        session['session_id'] = session_id
+        session.permanent = True
+        session.modified = True
+        
+        return session_id
+    except Exception as e:
+        app.logger.error(f'セッションデータの保存中にエラーが発生: {str(e)}')
+        raise
 
 def load_temp_data(session_id):
-    """セッションからデータを読み込み"""
-    if 'gaze_data' in session and session.get('session_id') == session_id:
-        return session['gaze_data']
-    return None
+    """セッションデータをファイルシステムから読み込み"""
+    try:
+        app.logger.debug(f'セッションID: {session_id} のデータを読み込み中...')
+        
+        file_path = os.path.join(SESSION_DATA_DIR, f'{session_id}.dat')
+        if not os.path.exists(file_path):
+            app.logger.error(f'セッションデータファイルが見つかりません: {file_path}')
+            return None
+        
+        # ファイルからデータを読み込み
+        with open(file_path, 'rb') as f:
+            compressed_data = f.read()
+        
+        # データを解凍
+        json_str = zlib.decompress(compressed_data).decode('utf-8')
+        
+        # JSONからPythonオブジェクトに変換
+        return json.loads(json_str)
+    except Exception as e:
+        app.logger.error(f'データの読み込み中にエラーが発生: {str(e)}')
+        return None
 
 def cleanup_temp_data(session_id):
-    """セッションからデータを削除"""
-    if 'gaze_data' in session and session.get('session_id') == session_id:
-        session.pop('gaze_data')
-        session.pop('session_id')
+    """セッションデータを削除"""
+    file_path = os.path.join(SESSION_DATA_DIR, f'{session_id}.dat')
+    if os.path.exists(file_path):
+        try:
+            os.remove(file_path)
+        except Exception as e:
+            app.logger.error(f'ファイルの削除中にエラーが発生: {str(e)}')
 
 def load_gaze_data(file_path):
     """CSVファイルから視線データを読み込む"""
@@ -657,8 +701,15 @@ def create_animation_video(fig, output_path, width=800, height=600, fps=2.5):
 @app.route('/download_animation/<plot_type>')
 def download_animation(plot_type):
     try:
+        # セッションIDを取得（URLパラメータから）
+        session_id = request.args.get('session_id')
+        app.logger.debug(f'ダウンロードリクエスト: plot_type={plot_type}, session_id={session_id}')
+        
+        if not session_id:
+            raise ValueError('セッションIDが見つかりません')
+        
         # セッションからデータを読み込み
-        temp_data = load_temp_data(session.get('session_id'))
+        temp_data = load_temp_data(session_id)
         if not temp_data:
             raise ValueError('セッションデータが見つかりません')
         
